@@ -1,5 +1,8 @@
 from typing import Union
+import time
 import sqlite3
+
+
 class MyPostDataBase(object):
 	def __init__(self):
 		self.posts = [
@@ -7,22 +10,33 @@ class MyPostDataBase(object):
 		{"title": "Title 2", "content": "Content 2", "id": 2}
 		]
 		self.databasename = "./fastapi.db"
-		self.connection = sqlite3.connect(self.databasename)
-		cursor = self.connection.cursor()
-		command2 = """CREATE TABLE IF NOT EXISTS products(
+		while True:
+			try:
+				self.connection = sqlite3.connect(self.databasename, check_same_thread=False)
+				self.cursor = self.connection.cursor()
+				print("Database Connection Successfully")
+				break
+
+			except Exception as e:
+				print("Connecting Databse Failed")
+				print("Error:", e)
+			time.sleep(2)
+
+
+		command = """
+			DROP TABLE IF EXISTS posts;
+
+			CREATE TABLE IF NOT EXISTS posts(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name VARCHAR NOT NULL,
-			price INT NOT NULL,
-			is_sale BOOL DEFAULT 0,
-			inverntory INTEGER NOT NULL DEFAULT 0,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);"""
-		self.insert_command = 'INSERT INTO products(name, price, is_sale)VALUES(?, ?, ?);'
-		self.fetch_all_command = 'SELECT * FROM products'
-		cursor.execute(command2)
-		cursor.execute(self.insert_command, ('abc', 10, True))
-		output = cursor.execute(self.fetch_all_command)
-		print(output.fetchall())
+			title VARCHAR NOT NULL,
+			content VARCHAR NOT NULL,
+			published BOOLEAN NOT NULL DEFAULT TRUE,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
+
+			INSERT INTO posts(title, content) VALUES ('1st title', '1st content'), ('2nd title', '2nd content');
+			"""
+		self.cursor.executescript(command)
+		
 		self.connection.commit()
 
 
@@ -32,6 +46,12 @@ class MyPostDataBase(object):
 
 	def __call__(self) -> dict:
 		return self.posts
+
+	def get_posts(self):
+		response = self.cursor.execute("SELECT * FROM posts").fetchall()
+		data = [dict(zip([c[0] for c in self.cursor.description], response[i])) for i in range(len(response))]
+		
+		return data
 
 
 	def find_post(self, idx: int) -> Union[dict, None]:
@@ -51,3 +71,13 @@ class MyPostDataBase(object):
 				self.posts[i] = post
 				return True
 		return False
+
+
+"""CREATE TABLE IF NOT EXISTS products(
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name VARCHAR NOT NULL,
+			price INT NOT NULL,
+			is_sale BOOL DEFAULT 0,
+			inverntory INTEGER NOT NULL DEFAULT 0,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);"""

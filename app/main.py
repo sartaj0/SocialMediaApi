@@ -28,7 +28,7 @@ def root():
 
 @app.get("/posts")
 def get_posts():
-	return {'data': my_posts.posts}
+	return {'data': my_posts.get_posts()}
 
 
 @app.post('/posts', status_code=status.HTTP_201_CREATED)
@@ -46,7 +46,7 @@ def temp_test(post: dict=Body(...)):
 
 
 @app.get("/posts/{idx}")
-def  get_post(idx: int, response: Response):
+def get_post(idx: int, response: Response):
 	post_detail = my_posts.find_post(idx)
 	if post_detail is None:
 		# response.status_code = status.HTTP_404_NOT_FOUND
