@@ -1,3 +1,4 @@
+
 from typing import Union
 import time
 import sqlite3
@@ -5,10 +6,7 @@ import sqlite3
 
 class MyPostDataBase(object):
 	def __init__(self):
-		self.posts = [
-		{"title": "Title 1", "content": "Content 1", "id": 1},
-		{"title": "Title 2", "content": "Content 2", "id": 2}
-		]
+		
 		self.databasename = "./fastapi.db"
 		while True:
 			try:
@@ -36,13 +34,16 @@ class MyPostDataBase(object):
 			INSERT INTO posts(title, content) VALUES ('1st title', '1st content'), ('2nd title', '2nd content');
 			"""
 		self.cursor.executescript(command)
-		
+		self.insert_command = "INSERT INTO posts (title, content, published) VALUES (?, ?, ?);"
+		self.find_command = "SELECT * FROM posts where id=%s"
 		self.connection.commit()
 
 
 	def store(self, data: dict):
 		self.posts.append(data)
-		return self
+		self.cursor.execute(self.insert_command, (data['title'], data['content'], data['published']))
+		new_post = self.cursor.fetchone()
+		return {"data": new_post}
 
 	def __call__(self) -> dict:
 		return self.posts
@@ -55,22 +56,27 @@ class MyPostDataBase(object):
 
 
 	def find_post(self, idx: int) -> Union[dict, None]:
-		a = next((x for x in self.posts if x["id"] == idx), None)
-		return a
+		# a = next((x for x in self.posts if x["id"] == idx), None)
+		try:
+			self.cursor.execute("SELECT * FROM posts where id=?", str(idx))
+			response = self.cursor.fetchone()
+			data = dict(zip([c[0] for c in self.cursor.description], response))
+		except Exception as e:
+			return None
 
 	def delete_post(self, idx:int) -> bool:
-		for i, p in enumerate(self.posts):
-			if p['id'] == idx:
-				self.posts.pop(i)
-				return True
-		return False
+		result = self.cursor.execute("""DELETE FROM posts WHERE id=?""", (str(idx), )).fetchone()
+		print(result, "result")
+		self.connection.commit()
+		return True
 
 	def update_post(self, idx:int, post: dict) -> bool:
-		for i, p in enumerate(self.posts):
-			if p['id'] == idx:
-				self.posts[i] = post
-				return True
-		return False
+		self.cursor.execute("""UPDATE posts SET title=?, content=?, published=? WHERE id=?""", 
+		(post['title'], post['content'], post['published'], str(idx)))
+		updated_post = self.cursor.fetchone()
+		self.connection.commit()
+		print(updated_post)
+		return True
 
 
 """CREATE TABLE IF NOT EXISTS products(
