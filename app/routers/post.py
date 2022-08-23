@@ -37,21 +37,20 @@ def create_posts(post: schema.PostCreate, db: Session = Depends(get_db), current
 	return new_post
 
 
-
-
 @routers.get("/{idx}", response_model=schema.PostResponse)
 def get_post(idx: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 	print(current_user.email)
 	# post_detail = my_posts.find_post(idx)
 	post = db.query(models.Post).filter(models.Post.idx == idx).first()
-	
 	if post is None:
-		if post.owner_id != current_user.idx:
-			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Not authorized to perform request action")
 		# response.status_code = status.HTTP_404_NOT_FOUND
 		# return {"message": f'Post with id: {idx} was not found'}
 		## OR
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id: {idx} was not found")
+	if post.owner_id != current_user.idx:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Not authorized to perform request action")
+		
+	print(post.owner)
 	return post
 
 
@@ -62,7 +61,6 @@ def delete_post(idx: int, db: Session = Depends(get_db), current_user: int = Dep
 	post_querry = db.query(models.Post).filter(models.Post.idx == idx)
 	post = post_querry.first()
 	if post != None:
-		print(post)
 		if post.owner_id != current_user.idx:
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Not authorized to perform request action")
 		post_querry.delete(synchronize_session=False)

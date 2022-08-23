@@ -39,13 +39,10 @@ class PostResponse(PostBase):
 	created_at: datetime
 	idx: int
 	owner_id: int
-	owner = UserOut
+	owner: UserOut
 
 	class Config:
 		orm_mode = True
-
-
-
 
 class Token(BaseModel):
 	access_token: str 

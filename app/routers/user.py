@@ -23,7 +23,6 @@ def create_users(user:schema.UserCreate, db: Session = Depends(get_db)):
 	db.commit() 
 	#Refresh
 	db.refresh(new_user)
-	print(new_user)
 
 	return new_user
 

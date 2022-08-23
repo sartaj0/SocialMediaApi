@@ -7,15 +7,7 @@ from . import models
 from .database import engine
 
 from . routers import post, user, auth
-from pydantic import BaseSettings
-
-class Setting(BaseSettings):
-	database_password: str = "localhost"
-	database_username: str = "sqlite3"
-	secret_key: str = "1234567890"
-
-setting = Setting()
-
+from .config import settings
 
 models.Base.metadata.create_all(bind=engine)
 
