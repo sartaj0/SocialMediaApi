@@ -1,7 +1,7 @@
 
-from sqlalchemy import Column, Integer, String, Boolean
-from sqlalchemy.sql.expression import text
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.sql.sqltypes import TIMESTAMP
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
 
@@ -12,6 +12,11 @@ class Post(Base):
 	content = Column(String, nullable=False)
 	published = Column(Boolean, server_default='TRUE', nullable=False)
 	created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+
+	owner_id = Column(Integer, ForeignKey("users.idx", ondelete="CASCADE"), nullable=False)
+		# cascade delete the post
+		
+	owner = relationship("User")
 
 
 class User(Base):
