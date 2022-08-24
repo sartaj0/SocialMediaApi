@@ -4,7 +4,7 @@ from ..database import engine, get_db
 from .. import models, schema, oauth2
 from typing import List, Optional
 from fastapi.params import Body
-
+from sqlalchemy import func
 
 routers = APIRouter(
 	prefix="/posts",
@@ -12,12 +12,16 @@ routers = APIRouter(
 )
 
 
-@routers.get("/", response_model=List[schema.PostResponse])
+@routers.get("/", response_model=List[schema.PostOut])
 def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user),
  limit: int=5, skip: int=0, search: Optional[str]= ""):
 	# posts = my_posts.get_posts()
 	# posts = db.query(models.Post).filter(models.Post.owner_id == current_user.idx).all()
-	posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit=limit).offset(skip).all()
+	# posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit=limit).offset(skip).all()
+	posts = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
+		models.Vote, models.Vote.post_id == models.Post.idx, isouter=True).group_by(
+			models.Post.idx).filter(models.Post.title.contains(search)).limit(limit=limit).offset(skip).all()
+	# print(result)
 	return posts
 
 
@@ -37,20 +41,22 @@ def create_posts(post: schema.PostCreate, db: Session = Depends(get_db), current
 	return new_post
 
 
-@routers.get("/{idx}", response_model=schema.PostResponse)
+@routers.get("/{idx}", response_model=schema.PostOut)
 def get_post(idx: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 	print(current_user.email)
 	# post_detail = my_posts.find_post(idx)
-	post = db.query(models.Post).filter(models.Post.idx == idx).first()
+	# post = db.query(models.Post).filter(models.Post.idx == idx).first()
+	post = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
+		models.Vote, models.Vote.post_id == models.Post.idx, isouter=True).group_by(
+			models.Post.idx).filter(models.Post.idx == idx).first()
 	if post is None:
 		# response.status_code = status.HTTP_404_NOT_FOUND
 		# return {"message": f'Post with id: {idx} was not found'}
 		## OR
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id: {idx} was not found")
-	if post.owner_id != current_user.idx:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Not authorized to perform request action")
-		
-	print(post.owner)
+	# if post.owner_id != current_user.idx:
+	# 	raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Not authorized to perform request action")
+	
 	return post
 
 
